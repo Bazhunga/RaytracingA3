@@ -20,5 +20,8 @@ void PointLight::shade( Ray3D& ray ) {
 	// is available.  So be sure that traverseScene() is called on the ray 
 	// before this function.  
 
+	Point3D light_pos = get_position();
+	// ray.col = ray.intersection.mat->ambient + ray.intersection.mat->diffuse + ray.intersection.mat->specular;
+	ray.col = _col_ambient + _col_diffuse;
 }
 

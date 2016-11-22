@@ -20,7 +20,7 @@ bool UnitSquare::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 	// (0, 0, 1).
 	//
 	// Your goal here is to fill ray.intersection with correct values
-	// should an intersection occur.  This includes intersection.point, 
+	// should an intersection occur. This includes intersection.point, 
 	// intersection.normal, intersection.none, intersection.t_value.   
 	//
 	// HINT: Remember to first transform the ray into object space  
@@ -33,7 +33,7 @@ bool UnitSquare::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 	// things easier 
 	// We need to take this and turn it into world coordinates by
 	// multiplying it with modeltoWorld
-	Ray3D object_space_ray 
+	Ray3D object_space_ray; 
 	object_space_ray.origin = worldToModel * ray.origin;
 	object_space_ray.dir = worldToModel * ray.dir;
 
@@ -48,6 +48,25 @@ bool UnitSquare::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 	// If t is positive, then do a check
 	// Check if the x and y coordinates lie between the unit square
 
+
+	double ray_test_t = -object_space_ray.origin[2]/object_space_ray.dir[2];
+
+	if (ray_test_t > 0) {
+		double plane_x = object_space_ray.origin[0]+object_space_ray.dir[0]*ray_test_t;
+		double plane_y = object_space_ray.origin[1]+object_space_ray.dir[1]*ray_test_t;
+
+		if (plane_x<=0.5 && plane_x>=-0.5 && plane_y<=0.5 && plane_y>=-0.5) {
+			Point3D intersection_point(plane_x, plane_y, 0);
+			ray.intersection.point = modelToWorld * intersection_point;
+			Vector3D normal(0, 0, 1);
+			ray.intersection.normal = modelToWorld * normal;
+			ray.intersection.t_value = ray_test_t;
+			ray.intersection.none = false;
+
+			return true;
+		}
+	}
+	ray.intersection.none = true;
 	return false;
 }
 
@@ -62,12 +81,17 @@ bool UnitSphere::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 	//
 	// HINT: Remember to first transform the ray into object space  
 	// to simplify the intersection test.
-	Ray3D object_space_ray 
-	object_space_ray.origin = worldToModel * ray.origin;
-	object_space_ray.dir = worldToModel * ray.dir;
+	// Ray3D object_space_ray 
+	// object_space_ray.origin = worldToModel * ray.origin;
+	// object_space_ray.dir = worldToModel * ray.dir;
+
+	// Intersect with the unit sphere centered around the origin 
+	// Draw a vector from center of circle (0,0,0) to the ray origin 
+	// Project that onto yo
 
 
 	
 	return false;
 }
 
+ 
