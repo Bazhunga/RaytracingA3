@@ -24,26 +24,30 @@ void PointLight::shade( Ray3D& ray ) {
 	// When we discuss diffusivity and specularity, we care about the angle
 	// at which the light strikes the surface. If we do not normalize, 
 	// we take magnitudes into account as well, which is incorrect
+
+	//Get the normal
 	Vector3D normal = ray.intersection.normal;
 	normal.normalize();
 
+	// Get the ray from intersection point to light
 	Point3D light_pos = get_position();
 	Vector3D light_ray = light_pos - ray.intersection.point;
 	light_ray.normalize();
 
-	Vector3D reflected_ray = 2*n_dot_light*normal - light_ray;
+	// Get the reflected ray following formula 2*(n.s)*n - s
+	double n_dot_light = normal.dot(light_ray);
+	Vector3D reflected_ray = 2 * n_dot_light * normal - light_ray;
 	reflected_ray.normalize();
 	
-	double n_dot_light = normal.dot(light_ray);
 	double specular_dot_product = reflected_ray.dot((-1)*ray.dir);
-	double ambient_intensity = 1;
-	double diffuse_intensity = 1;
-	double specular_intensity = 1;
+	double ambient_intensity = 1.0;
+	double diffuse_intensity = 1.0;
+	double specular_intensity = 1.2;
 	double spec_shininess = ray.intersection.mat->specular_exp;
 
-	Colour light_ambient = 	ambient_intensity* ray.intersection.mat->ambient * _col_ambient;
-	Colour light_diffuse = std::max(0.0, n_dot_light)*diffuse_intensity*ray.intersection.mat->diffuse * _col_diffuse;
-	Colour light_specular = pow(std::max(0.0, specular_dot_product),spec_shininess)*specular_intensity*ray.intersection.mat->specular * _col_specular;
+	Colour light_ambient = 	ambient_intensity * ray.intersection.mat->ambient;
+	Colour light_diffuse = std::max(0.0, n_dot_light)*diffuse_intensity*ray.intersection.mat->diffuse;
+	Colour light_specular = pow(std::max(0.0, specular_dot_product),spec_shininess)*specular_intensity*ray.intersection.mat->specular;
 	// Colour material_ambient 
 	// Colour material_diffuse
 	// Colour material_specular	
