@@ -22,8 +22,10 @@ void PointLight::shade( Ray3D& ray ) {
 
 	// Remember that every vector needs to be normalized. 
 	// When we discuss diffusivity and specularity, we care about the angle
-	// at which the light strikes the surface. If we do not normalize, 
-	// we take magnitudes into account as well, which is incorrect
+	// at which the light strikes the surface. We also have the values of
+	// dot products be < 1, which prevents our colours from maxing out.
+	// If we do not normalize, we take magnitudes into account as well, which is incorrect,
+	// since we max out the colours.
 
 	//Get the normal
 	Vector3D normal = ray.intersection.normal;
@@ -45,6 +47,8 @@ void PointLight::shade( Ray3D& ray ) {
 	double specular_intensity = 1.2;
 	double spec_shininess = ray.intersection.mat->specular_exp;
 
+	// Need to use std::max to make sure we never have a negative colour value. 
+	// Our surface is characterized by the material's diffusivity and specularity components
 	Colour light_ambient = 	ambient_intensity * ray.intersection.mat->ambient;
 	Colour light_diffuse = std::max(0.0, n_dot_light)*diffuse_intensity*ray.intersection.mat->diffuse;
 	Colour light_specular = pow(std::max(0.0, specular_dot_product),spec_shininess)*specular_intensity*ray.intersection.mat->specular;

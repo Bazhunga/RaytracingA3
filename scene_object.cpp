@@ -33,9 +33,7 @@ bool UnitSquare::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 	// things easier 
 	// We need to take this and turn it into world coordinates by
 	// multiplying it with modeltoWorld
-	Ray3D object_space_ray; 
-	object_space_ray.origin = worldToModel * ray.origin;
-	object_space_ray.dir = worldToModel * ray.dir;
+	Ray3D object_space_ray = Ray3D(worldToModel * ray.origin, worldToModel * ray.dir);
 
 	// Now we're in camera coordinates
 	// We want to see if it intersects with the unit square
@@ -49,24 +47,26 @@ bool UnitSquare::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 	// Check if the x and y coordinates lie between the unit square
 
 
-	double ray_test_t = -object_space_ray.origin[2]/object_space_ray.dir[2];
+	double ray_test_t = -(object_space_ray.origin[2]/object_space_ray.dir[2]);
 
+	Point3D plane_intersect_point = object_space_ray.origin + ray_test_t * object_space_ray.dir;
+	// std::cout << "plane_intersect_point: "<< plane_intersect_point[0]<< " " << plane_intersect_point[1] << " " << plane_intersect_point[2] << ".\n";
 	if (ray_test_t > 0) {
-		double plane_x = object_space_ray.origin[0]+object_space_ray.dir[0]*ray_test_t;
-		double plane_y = object_space_ray.origin[1]+object_space_ray.dir[1]*ray_test_t;
-
-		if (plane_x<=0.5 && plane_x>=-0.5 && plane_y<=0.5 && plane_y>=-0.5) {
-			Point3D intersection_point(plane_x, plane_y, 0);
-			ray.intersection.point = modelToWorld * intersection_point;
-			Vector3D normal(0, 0, 1);
-			ray.intersection.normal = modelToWorld * normal;
-			ray.intersection.t_value = ray_test_t;
-			ray.intersection.none = false;
-
-			return true;
+		if (plane_intersect_point[0]<=0.5 && plane_intersect_point[0]>=-0.5 
+			&& plane_intersect_point[1]<=0.5 && plane_intersect_point[1]>=-0.5) {
+			if(ray.intersection.none || ray_test_t < ray.intersection.t_value){
+				Intersection intersection_point;
+				intersection_point.point = modelToWorld * plane_intersect_point;
+				Vector3D normal(0, 0, 1);
+				intersection_point.normal = worldToModel.transpose() * normal;
+				intersection_point.t_value = ray_test_t;
+				intersection_point.none = false;
+				ray.intersection = intersection_point;
+				return true;
+			}
 		}
 	}
-	ray.intersection.none = true;
+	// Do not reset ray.intersection.non to true!! It might have gone through the 
 	return false;
 }
 
@@ -88,9 +88,76 @@ bool UnitSphere::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 	// Intersect with the unit sphere centered around the origin 
 	// Draw a vector from center of circle (0,0,0) to the ray origin 
 	// Project that onto yo
+	Ray3D object_space_ray = Ray3D(worldToModel * ray.origin, worldToModel * ray.dir);
+
+	object_space_ray.dir.normalize(); // We need to normalize to get the correct 
+
+   // q - c where c = (0, 0, 0)
+   Vector3D ray_to_circle_center(-1*object_space_ray.origin[0], -1*object_space_ray.origin[1], -1*object_space_ray.origin[2]);
+
+   // y^2 = |q - c|^2 - |(q - c) . r|^2
+   double ray_test_y_squared = pow(ray_to_circle_center.length(),2) - pow(ray_to_circle_center.dot(object_space_ray.dir),2);
+
+   // k^2 = d^2 - y^2 where d = 1
+   double ray_test_k_squared = 1 - ray_test_y_squared;
+   // if (ray_test_k_squared > 0) {
+   // 	std::cout << "K found: "<< ray_test_k_squared << ".\n";
+   // }
+
+   // if k exists, there is at least one point of intersection
+   if (ray_test_k_squared >= 0) {
+   	if (ray.intersection.none){
+	      double k = sqrt(ray_test_k_squared);
+
+	      // ((q - c) . r) * r
+	      Vector3D ray_including_k;
+	      Vector3D ray_to_intersection;
+
+	      ray_including_k = object_space_ray.dir.dot(ray_to_circle_center) * object_space_ray.dir;
+
+	      // multiply with ray_including_k to reduce length to length - k
+	      double length_factor = (ray_including_k.length() - k);
+	      ray_to_intersection = length_factor * object_space_ray.dir;
+	   	// std::cout << "K found: "<< ray_test_k_squared << " to: " << k << ".\n";
+	   	// std::cout << "Shortening : "<< ray_including_k << " to: " << ray_to_intersection << ".\n";
 
 
-	
+	      // (x,y,z) = r + q
+	      double x = ray_to_intersection[0] + object_space_ray.origin[0];
+	      double y = ray_to_intersection[1] + object_space_ray.origin[1];
+	      double z = ray_to_intersection[2] + object_space_ray.origin[2];
+
+	      Point3D intersection_point(x, y, z);
+
+	      ray.intersection.point = modelToWorld * intersection_point;
+
+	      // double t_value_x = (intersection_point-object_space_ray.origin)[0]/object_space_ray.dir[0];
+	      // double t_value_y = (intersection_point-object_space_ray.origin)[1]/object_space_ray.dir[1];
+	      // double t_value_z = (intersection_point-object_space_ray.origin)[2]/object_space_ray.dir[2];
+
+	      double t_value = (ray_to_intersection.length() / object_space_ray.dir.length());
+	      // std::cout << "tval : "<< t_value << ".\n";
+	      // std::cout << "tval_x : "<< t_value_x << ".\n";
+	      // std::cout << "tval_y : "<< t_value_y << ".\n";
+	      // std::cout << "tval_z : "<< t_value_z << ".\n";
+
+	      // if (t_value_x != t_value_y || t_value_y != t_value_z) {
+	      //    // Calculation error?
+	      //    return false;
+	      // }
+
+	      // Normal vector at the point of intersection
+	      Vector3D normal(intersection_point[0], intersection_point[1], intersection_point[2]);
+	      ray.intersection.normal = worldToModel.transpose() * normal;
+	      ray.intersection.normal.normalize();
+
+	      // All the t_value variables should have the same value
+	      ray.intersection.t_value = t_value;
+
+	      ray.intersection.none = false;
+	      return true;
+   	}
+   }
 	return false;
 }
 
