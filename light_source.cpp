@@ -11,7 +11,7 @@
 #include <cmath>
 #include "light_source.h"
 
-void PointLight::shade( Ray3D& ray ) {
+Colour PointLight::shade( Ray3D& ray ) {
 	// TODO: implement this function to fill in values for ray.col 
 	// using phong shading.  Make sure your vectors are normalized, and
 	// clamp colour values to 1.0.
@@ -56,16 +56,16 @@ void PointLight::shade( Ray3D& ray ) {
 	// Colour material_diffuse
 	// Colour material_specular	
 
-	ray.col = light_ambient;
-	if (n_dot_light < 0) {
-		return;
-	}
+	// ray.col = light_ambient;
+	// if (n_dot_light < 0) {
+	// 	return Colour(1,1,1);
+	// }
 
-	ray.col = ray.col + light_diffuse + light_specular;
-	ray.col.clamp();
+	// ray.col = light_ambient + light_diffuse + light_specular;
+	// ray.col.clamp();
 
 	// ray.col = ray.col + 
 
-	return;
+	return (light_ambient + light_diffuse + light_specular);
 }
 

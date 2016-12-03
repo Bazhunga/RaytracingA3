@@ -16,6 +16,7 @@
 #include <cmath>
 #include <iostream>
 #include <cstdlib>
+// #include <random>  
 
 Raytracer::Raytracer() : _lightSource(NULL) {
 	_root = new SceneDagNode();
@@ -180,15 +181,72 @@ void Raytracer::traverseScene( SceneDagNode* node, Ray3D& ray, const Matrix4x4& 
 
 }
 
-void Raytracer::computeShading( Ray3D& ray ) {
+void Raytracer::traverseSceneIgnoreNode( SceneDagNode* node, SceneDagNode* ignoreNode, Ray3D& ray, const Matrix4x4& modelToWorld, const Matrix4x4& worldToModel ) {
+	SceneDagNode *childPtr;
+
+	// Applies transformation of the current node to the global
+	// transformation matrices.
+	Matrix4x4 myModelToWorld = modelToWorld*node->trans;
+	Matrix4x4 myWorldToModel = node->invtrans*worldToModel;
+
+	if (node == ignoreNode) {
+		childPtr = node->child;
+		while (childPtr != NULL) {
+			traverseSceneIgnoreNode(childPtr, ignoreNode, ray, myModelToWorld,myWorldToModel);
+			childPtr = childPtr->next;
+		}
+		return;
+	}
+
+	if (node->obj) {
+		// Perform intersection.
+		// Note that we pass the ray in WORLD COORDINATES at the moment
+		if (node->obj->intersect(ray, myWorldToModel, myModelToWorld)) {
+			ray.intersection.mat = node->mat;
+		}
+	}
+	// Traverse the children.
+	childPtr = node->child;
+	while (childPtr != NULL) {
+		traverseSceneIgnoreNode(childPtr, ignoreNode, ray, myModelToWorld,myWorldToModel);
+		childPtr = childPtr->next;
+	}
+
+}
+
+void Raytracer::computeShading( SceneDagNode* node, Ray3D& ray ) {
+	// SceneDagNode* child_node = _root->child;
 	LightListNode* curLight = _lightSource;
 	for (;;) {
 		if (curLight == NULL) break;
 		// Each lightSource provides its own shading function.
 
-		// Implement shadows here if needed.
+		Colour colour_without_shading = curLight->light->shade(ray);
 
-		curLight->light->shade(ray);
+		double t = 2 * M_PI;
+		Vector3D vector_offset(cos(t), sin(t), 0);
+   		std::cout << "K found: "<< t << ".\n";
+
+		Ray3D light_ray;
+		light_ray.origin = ray.intersection.point;
+		light_ray.dir = curLight->light->get_position() + vector_offset - ray.intersection.point;
+
+		double distance = light_ray.dir.length();
+
+		light_ray.dir.normalize();
+
+
+		traverseScene(_root, light_ray, _modelToWorld, _worldToModel);
+
+		// && light_ray.intersection.t_value < distance
+		if (!light_ray.intersection.none && light_ray.intersection.t_value > 0.000000001 && light_ray.intersection.t_value < distance) {
+			ray.col = Colour(0, 0, 0);
+		} else {
+			ray.col = colour_without_shading;
+		}
+
+		ray.col.clamp();
+
 		curLight = curLight->next;
 	}
 }
@@ -222,7 +280,7 @@ Colour Raytracer::shadeRay( Ray3D& ray ) {
 	// Don't bother shading if the ray didn't hit 
 	// anything.
 	if (!ray.intersection.none) {
-		computeShading(ray); 
+		computeShading(_root, ray); 
 		col = ray.col;  
 	}
 
@@ -312,13 +370,14 @@ int main(int argc, char* argv[])
 				Colour(0.9, 0.9, 0.9) ) );
 
 	// Add a unit square into the scene with material mat.
-	SceneDagNode* sphere = raytracer.addObject( new UnitSphere(), &gold );
 	SceneDagNode* plane = raytracer.addObject( new UnitSquare(), &jade );
+	SceneDagNode* sphere = raytracer.addObject( new UnitSphere(), &gold );
+
 	
 	// Apply some transformations to the unit square.
 	double factor1[3] = { 1.0, 2.0, 1.0 };
 	double factor2[3] = { 6.0, 6.0, 6.0 };
-	raytracer.translate(sphere, Vector3D(0, 0, -5));	
+	raytracer.translate(sphere, Vector3D(0, 0, -3));	
 	raytracer.rotate(sphere, 'x', -45); 
 	raytracer.rotate(sphere, 'z', 45); 
 	raytracer.scale(sphere, Point3D(0, 0, 0), factor1);

@@ -120,10 +120,11 @@ private:
 	// the object space of each node where intersection is performed.
 	void traverseScene( SceneDagNode* node, Ray3D& ray );
 	void traverseScene( SceneDagNode* node, Ray3D& ray, const Matrix4x4& worldToModel, const Matrix4x4& modelToWorld );
+	void traverseSceneIgnoreNode( SceneDagNode* node, SceneDagNode* ignoreNode, Ray3D& ray, const Matrix4x4& modelToWorld, const Matrix4x4& worldToModel );
 
 	// After intersection, calculate the colour of the ray by shading it
 	// with all light sources in the scene.
-	void computeShading( Ray3D& ray );
+	void computeShading( SceneDagNode* node, Ray3D& ray );
 	
 	// Width and height of the viewport.
 	int _scrWidth;
