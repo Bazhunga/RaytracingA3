@@ -35,6 +35,7 @@ bool UnitSquare::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 	// multiplying it with modeltoWorld
 	Ray3D object_space_ray = Ray3D(worldToModel * ray.origin, worldToModel * ray.dir);
 	object_space_ray.intersection = ray.intersection;
+	std::string previousIntersection = ray.intersection.shape;
 
 	// Now we're in camera coordinates
 	// We want to see if it intersects with the unit square
@@ -55,7 +56,8 @@ bool UnitSquare::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 	if (ray_test_t > 0) {
 		if (plane_intersect_point[0]<=0.5 && plane_intersect_point[0]>=-0.5 
 			&& plane_intersect_point[1]<=0.5 && plane_intersect_point[1]>=-0.5) {
-			if(ray.intersection.none || ray_test_t < ray.intersection.t_value){
+			// Check if previous intersection is square. If yes, ignore this. 
+			if((ray.intersection.none || ray_test_t < ray.intersection.t_value) && previousIntersection.compare("square") != 0){
 				Intersection intersection_point;
 				intersection_point.point = modelToWorld * plane_intersect_point;
 				Vector3D normal(0, 0, 1);
@@ -63,11 +65,75 @@ bool UnitSquare::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 				intersection_point.t_value = ray_test_t;
 				intersection_point.none = false;
 				ray.intersection = intersection_point;
+				ray.intersection.normal.normalize();
+				ray.intersection.shape = "square";
 				return true;
 			}
 		}
 	}
-	// Do not reset ray.intersection.non to true!! It might have gone through the 
+	// Do not reset ray.intersection.non to true!! It might have gone through the circle 
+	return false;
+}
+
+bool UnitSquareTextured::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
+		const Matrix4x4& modelToWorld ) {
+	// TODO: implement intersection code for UnitSquare, which is
+	// defined on the xy-plane, with vertices (0.5, 0.5, 0), 
+	// (-0.5, 0.5, 0), (-0.5, -0.5, 0), (0.5, -0.5, 0), and normal
+	// (0, 0, 1).
+	//
+	// Your goal here is to fill ray.intersection with correct values
+	// should an intersection occur. This includes intersection.point, 
+	// intersection.normal, intersection.none, intersection.t_value.   
+	//
+	// HINT: Remember to first transform the ray into object space  
+	// to simplify the intersection test.
+
+
+	// The ray is shot out in camera coordinates. But remember that
+	// we had previously changed that to world coordinates! 
+	// We need to change this back to camera coordinates to make 
+	// things easier 
+	// We need to take this and turn it into world coordinates by
+	// multiplying it with modeltoWorld
+	Ray3D object_space_ray = Ray3D(worldToModel * ray.origin, worldToModel * ray.dir);
+	object_space_ray.intersection = ray.intersection;
+	std::string previousIntersection = ray.intersection.shape;
+
+
+	// Now we're in camera coordinates
+	// We want to see if it intersects with the unit square
+	// Since this lies on the xy plane, we just see when it hits z = 0
+
+	// Ray is p(t) = q + rt where q is the ray.origin and r is ray.dir (unit vector)
+	// Just look at the Z element.
+	// q_z + r_z*t = 0 
+	// If t is negative, there is no intersection (we're shooting off to the other direction)
+	// If t is positive, then do a check
+	// Check if the x and y coordinates lie between the unit square
+
+
+	double ray_test_t = -(object_space_ray.origin[2]/object_space_ray.dir[2]);
+
+	Point3D plane_intersect_point = object_space_ray.origin + ray_test_t * object_space_ray.dir;
+	// std::cout << "plane_intersect_point: "<< plane_intersect_point[0]<< " " << plane_intersect_point[1] << " " << plane_intersect_point[2] << ".\n";
+	if (ray_test_t > 0) {
+		if (plane_intersect_point[0]<=0.5 && plane_intersect_point[0]>=-0.5 
+			&& plane_intersect_point[1]<=0.5 && plane_intersect_point[1]>=-0.5) {
+			if((ray.intersection.none || ray_test_t < ray.intersection.t_value) && previousIntersection.compare("circle") != 0){
+				Intersection intersection_point;
+				intersection_point.point = modelToWorld * plane_intersect_point;
+				Vector3D normal(0, 0, 1);
+				intersection_point.normal = worldToModel.transpose() * normal;
+				intersection_point.t_value = ray_test_t;
+				intersection_point.none = false;
+				ray.intersection = intersection_point;
+				ray.intersection.normal.normalize();
+				ray.intersection.shape = "square";
+				return true;
+			}
+		}
+	}
 	return false;
 }
 
@@ -134,13 +200,16 @@ bool UnitSphere::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 
 	      // Normal vector at the point of intersection
 	      Vector3D normal(intersection_point[0], intersection_point[1], intersection_point[2]);
+	      // ray.intersection.normal = worldToModel.transpose() * normal;
 	      ray.intersection.normal = worldToModel.transpose() * normal;
 	      ray.intersection.normal.normalize();
+	      // ray.intersection.normal.normalize();
 
 	      // All the t_value variables should have the same value
 	      ray.intersection.t_value = t_value;
 
 	      ray.intersection.none = false;
+	     	ray.intersection.shape = "sphere";
 	      return true;
 
 	   	}
