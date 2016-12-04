@@ -35,7 +35,7 @@ bool UnitSquare::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 	// multiplying it with modeltoWorld
 	Ray3D object_space_ray = Ray3D(worldToModel * ray.origin, worldToModel * ray.dir);
 	object_space_ray.intersection = ray.intersection;
-	std::string previousIntersection = ray.intersection.shape;
+	std::string previousIntersection = ray.previousShape;
 
 	// Now we're in camera coordinates
 	// We want to see if it intersects with the unit square
@@ -57,17 +57,24 @@ bool UnitSquare::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 		if (plane_intersect_point[0]<=0.5 && plane_intersect_point[0]>=-0.5 
 			&& plane_intersect_point[1]<=0.5 && plane_intersect_point[1]>=-0.5) {
 			// Check if previous intersection is square. If yes, ignore this. 
-			if((ray.intersection.none || ray_test_t < ray.intersection.t_value) && previousIntersection.compare("square") != 0){
-				Intersection intersection_point;
-				intersection_point.point = modelToWorld * plane_intersect_point;
-				Vector3D normal(0, 0, 1);
-				intersection_point.normal = worldToModel.transpose() * normal;
-				intersection_point.t_value = ray_test_t;
-				intersection_point.none = false;
-				ray.intersection = intersection_point;
-				ray.intersection.normal.normalize();
-				ray.intersection.shape = "square";
-				return true;
+			if (previousIntersection.compare("square") != 0){ 
+				if((ray.intersection.none || ray_test_t < ray.intersection.t_value)){
+					Intersection intersection_point;
+					intersection_point.point = modelToWorld * plane_intersect_point;
+					Vector3D normal(0, 0, 1);
+					intersection_point.normal = worldToModel.transpose() * normal;
+					intersection_point.t_value = ray_test_t;
+					intersection_point.none = false;
+					ray.intersection = intersection_point;
+					ray.intersection.normal.normalize();
+					ray.intersection.shape = "square";
+					return true;
+				}
+			}
+			else {
+				// We're self intersecting
+				// Reset the ray.intersection.none because this is a reflected ray
+				ray.intersection.none = true; 
 			}
 		}
 	}
@@ -98,7 +105,7 @@ bool UnitSquareTextured::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 	// multiplying it with modeltoWorld
 	Ray3D object_space_ray = Ray3D(worldToModel * ray.origin, worldToModel * ray.dir);
 	object_space_ray.intersection = ray.intersection;
-	std::string previousIntersection = ray.intersection.shape;
+	std::string previousIntersection = ray.previousShape;
 
 
 	// Now we're in camera coordinates
@@ -120,17 +127,24 @@ bool UnitSquareTextured::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 	if (ray_test_t > 0) {
 		if (plane_intersect_point[0]<=0.5 && plane_intersect_point[0]>=-0.5 
 			&& plane_intersect_point[1]<=0.5 && plane_intersect_point[1]>=-0.5) {
-			if((ray.intersection.none || ray_test_t < ray.intersection.t_value) && previousIntersection.compare("circle") != 0){
-				Intersection intersection_point;
-				intersection_point.point = modelToWorld * plane_intersect_point;
-				Vector3D normal(0, 0, 1);
-				intersection_point.normal = worldToModel.transpose() * normal;
-				intersection_point.t_value = ray_test_t;
-				intersection_point.none = false;
-				ray.intersection = intersection_point;
-				ray.intersection.normal.normalize();
-				ray.intersection.shape = "square";
-				return true;
+			if (previousIntersection.compare("square") != 0){ 
+				if((ray.intersection.none || ray_test_t < ray.intersection.t_value)){
+					Intersection intersection_point;
+					intersection_point.point = modelToWorld * plane_intersect_point;
+					Vector3D normal(0, 0, 1);
+					intersection_point.normal = worldToModel.transpose() * normal;
+					intersection_point.t_value = ray_test_t;
+					intersection_point.none = false;
+					ray.intersection = intersection_point;
+					ray.intersection.normal.normalize();
+					ray.intersection.shape = "square";
+					return true;
+				}
+			}
+			else {
+				// We're self intersecting
+				// Reset the ray.intersection.none because this is a reflected ray
+				ray.intersection.none = true; 
 			}
 		}
 	}
@@ -158,6 +172,7 @@ bool UnitSphere::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 	Ray3D object_space_ray = Ray3D(worldToModel * ray.origin, worldToModel * ray.dir);
 	object_space_ray.intersection = ray.intersection;
 	object_space_ray.dir.normalize(); // We need to normalize to get the correct 
+	std::string previousIntersection = ray.previousShape;
 
    // q - c where c = (0, 0, 0)
    Vector3D ray_to_circle_center(-1*object_space_ray.origin[0], -1*object_space_ray.origin[1], -1*object_space_ray.origin[2]);
@@ -184,8 +199,8 @@ bool UnitSphere::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 		double length_factor = (ray_including_k.length() - k);
 		ray_to_intersection = length_factor * object_space_ray.dir;
 
-	    double t_value = (ray_to_intersection.length() / object_space_ray.dir.length());
-
+	   double t_value = (ray_to_intersection.length() / object_space_ray.dir.length());
+	   if(previousIntersection.compare("circle") != 0) {
 	   	if (ray.intersection.none || t_value < ray.intersection.t_value){
 
 	      // (x,y,z) = r + q
@@ -213,6 +228,10 @@ bool UnitSphere::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 	      return true;
 
 	   	}
+	   }
+	   else {
+	      ray.intersection.none = true;
+	   }
 	}
 	return false;
 }

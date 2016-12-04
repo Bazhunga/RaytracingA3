@@ -251,13 +251,16 @@ Colour Raytracer::shadeRay( Ray3D& ray ) {
 		// std::cout << "direction: " << ray.intersection.normal.dot(incident) << "\n";
 		Vector3D reflected_vector = 2 * (ray.intersection.normal.dot(incident)) * ray.intersection.normal - incident;
 		reflected_vector.normalize();
-		Ray3D reflectedRay = Ray3D(ray.intersection.point + 0.001 * reflected_vector, reflected_vector, ray.reflectNum + 1);
+		Ray3D reflectedRay = Ray3D(ray.intersection.point + 0.001 * reflected_vector, 
+													reflected_vector, 
+													ray.reflectNum + 1, 
+													ray.intersection.shape);
 		// std::cout << "Coeff: " << ray.intersection.mat->reflection_coeff << "\n";
 		// std::cout << "RN:" << ray.reflectNum  << "\n";
 		// std::cout << "Power:" << pow(ray.intersection.mat->reflection_coeff, ray.reflectNum)  << "\n\n";
 		refCol = shadeRay(reflectedRay);
-		// std::cout << "Curr Int" << ray.reflectNum << ": " << ray.intersection.shape << "\n";
-		// std::cout << "Next Int: " << reflectedRay.intersection.shape << "\n";
+		std::cout << "Curr Int" << ray.reflectNum << ": " << ray.intersection.shape << "\n";
+		std::cout << "Next Int: " << reflectedRay.intersection.shape << "\n";
 		if(reflectedRay.intersection.none || reflectedRay.intersection.shape.compare(ray.intersection.shape) == 0) { // hit nothing
 			totalCol = currCol; // Only colour of the material that ray hit; no reflection
 		}
@@ -292,7 +295,7 @@ void Raytracer::render( int width, int height, Point3D eye, Vector3D view,
 	Matrix4x4 viewToWorld;
 	_scrWidth = width;
 	_scrHeight = height;
-	_reflecNum = 5;
+	_reflecNum = 4;
 	double factor = (double(height)/2)/tan(fov*M_PI/360.0);
 
 	initPixelBuffer();
@@ -308,7 +311,7 @@ void Raytracer::render( int width, int height, Point3D eye, Vector3D view,
 	// Construct a ray for each pixel.
 	for (int i = 0; i < _scrHeight; i++) {
 		for (int j = 0; j < _scrWidth; j++) {
-			// Shoot 9 instead
+			// Shoot 25 instead
 			// Add it to a colour object. Divide by number of rays
 			Colour col_tot; 
 			for (int k = -2; k <= 2; k++) {
@@ -391,7 +394,7 @@ int main(int argc, char* argv[])
 	// Apply some transformations to the unit square.
 	double factor1[3] = { 1.0, 2.0, 1.0 };
 	double factor2[3] = { 6.0, 6.0, 6.0 };
-	raytracer.translate(sphere, Vector3D(0, 0, -3));	
+	raytracer.translate(sphere, Vector3D(0, 0, -6));	
 	raytracer.rotate(sphere, 'x', -45); 
 	raytracer.rotate(sphere, 'z', 45); 
 	raytracer.scale(sphere, Point3D(0, 0, 0), factor1);

@@ -168,18 +168,31 @@ struct Ray3D {
 	Ray3D() {
 		intersection.none = true; 
 		intersection.shape = "nothing";
+		previousShape = "nothing";
 		reflectNum = 1;
 	}
 	Ray3D( Point3D p, Vector3D v ) : origin(p), dir(v) {
 		intersection.none = true;
 		intersection.shape = "nothing";
+		previousShape = "nothing";
 		reflectNum = 1;
 	}
 	Ray3D( Point3D p, Vector3D v, int rn ) : origin(p), dir(v) {
 		intersection.none = true;
 		intersection.shape = "nothing";
+		previousShape = "nothing";
 		reflectNum = rn;
 	} 
+	Ray3D( Point3D p, Vector3D v, int rn, std::string prevShape) : origin(p), dir(v) {
+		intersection.none = true;
+		intersection.shape = "nothing";
+		previousShape = prevShape;
+		reflectNum = rn;
+	}
+	// Defines incident or reflected ray. This is used to solve self intersection
+	// Can be "incident" or "reflected"
+	// With reflected rays, we 
+	std::string previousShape;
 
 	// used for recursive drawing
 	int reflectNum;
