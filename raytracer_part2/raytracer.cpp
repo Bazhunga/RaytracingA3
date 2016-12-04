@@ -181,32 +181,67 @@ void Raytracer::traverseScene( SceneDagNode* node, Ray3D& ray, const Matrix4x4& 
 }
 
 void Raytracer::computeShading( Ray3D& ray ) {
+	// >>> Old
+	// LightListNode* curLight = _lightSource;
+	// for (;;) {
+	// 	if (curLight == NULL) break;
+	// 	// Each lightSource provides its own shading function.
+
+	// 	// Implement shadows here if needed.
+	// 	// We know where the intersection points are
+	// 	// Now we need to draw a ray from light source to the intersection point
+	// 	// Traverse the scene
+	// 	// Now we know if that ray intersects anything
+	// 	// If it does, then we know to shade the ray darker
+
+	// 	Vector3D lti = curLight->light->get_position() - ray.intersection.point;
+	// 	lti.normalize();
+	// 	Point3D ip = ray.intersection.point + 0.001 * lti;
+	// 	Ray3D lightToIntersection = Ray3D(ip, lti);
+	// 	traverseScene(_root, lightToIntersection);
+	// 	if(lightToIntersection.intersection.none == false && lightToIntersection.intersection.shape.compare(ray.intersection.shape) != 0) {
+	// 		curLight->light->shade(ray, 1.0);
+	// 	}
+	// 	else {
+	// 		curLight->light->shade(ray, 1.0);
+	// 	}
+
+	// 	curLight = curLight->next;
+	// }
+	// >> New
+	Colour totalCol = Colour(0.0,0.0,0.0);
 	LightListNode* curLight = _lightSource;
 	for (;;) {
 		if (curLight == NULL) break;
-		// Each lightSource provides its own shading function.
 
-		// Implement shadows here if needed.
-		// We know where the intersection points are
-		// Now we need to draw a ray from light source to the intersection point
-		// Traverse the scene
-		// Now we know if that ray intersects anything
-		// If it does, then we know to shade the ray darker
-
+		// std::cout << "Pos light " << curLight->light->get_id() << " X: " << curLight->light->get_position()[0] << " Y: " << curLight->light->get_position()[1] <<  " Z: " << curLight->light->get_position()[2] << "\n"; 
 		Vector3D lti = curLight->light->get_position() - ray.intersection.point;
 		lti.normalize();
 		Point3D ip = ray.intersection.point + 0.001 * lti;
 		Ray3D lightToIntersection = Ray3D(ip, lti);
 		traverseScene(_root, lightToIntersection);
 		if(lightToIntersection.intersection.none == false && lightToIntersection.intersection.shape.compare(ray.intersection.shape) != 0) {
-			curLight->light->shade(ray, 0.8);
+			// if(curLight->light->get_id() == 1) {
+			// 	curLight->light->shade(ray, 0.70);
+			// }
+			// else {
+			// 	curLight->light->shade(ray, 0.70); 
+			// }
+			curLight->light->shade(ray, 0.70);
 		}
 		else {
+			// std::cout << "light: " << curLight->light->get_id() << "\n";
 			curLight->light->shade(ray, 1.0);
 		}
-
+		totalCol = totalCol + ray.col;
 		curLight = curLight->next;
 	}
+	// ray.col = (1.0/_numlights) * ray.col;
+	// Apply the shadow factor 
+	// if (shadowCount != 0) {
+	// 	ray.col = (0.9 - (1.0/shadowCount) * 0.8) * ray.col;
+	// }
+	ray.col = (1.0/_numlights) * totalCol; // Get the average colour 
 }
 
 void Raytracer::initPixelBuffer() {
@@ -241,33 +276,38 @@ Colour Raytracer::shadeRay( Ray3D& ray ) {
 	// anything.
 	Vector3D incident = -1 * ray.dir; // We define incident as pointing away from intersection
 	double selfIntersect = ray.intersection.normal.dot(incident); // negative if self intersecting
-	if (!ray.intersection.none && ray.reflectNum <= _reflecNum && selfIntersect > 0) {
+	if (!ray.intersection.none && selfIntersect > 0) {
 		computeShading(ray); 
 		currCol = ray.col;  
 
-		// Calculate the reflected ray 
-		// reflectedray = 2 * (normal . incident) * normal - incident
-		incident.normalize();
-		// std::cout << "direction: " << ray.intersection.normal.dot(incident) << "\n";
-		Vector3D reflected_vector = 2 * (ray.intersection.normal.dot(incident)) * ray.intersection.normal - incident;
-		reflected_vector.normalize();
-		Ray3D reflectedRay = Ray3D(ray.intersection.point + 0.001 * reflected_vector, 
-													reflected_vector, 
-													ray.reflectNum + 1, 
-													ray.intersection.shape);
-		// std::cout << "Coeff: " << ray.intersection.mat->reflection_coeff << "\n";
-		// std::cout << "RN:" << ray.reflectNum  << "\n";
-		// std::cout << "Power:" << pow(ray.intersection.mat->reflection_coeff, ray.reflectNum)  << "\n\n";
-		refCol = shadeRay(reflectedRay);
-		std::cout << "Curr Int" << ray.reflectNum << ": " << ray.intersection.shape << "\n";
-		std::cout << "Next Int: " << reflectedRay.intersection.shape << "\n";
-		if(reflectedRay.intersection.none || reflectedRay.intersection.shape.compare(ray.intersection.shape) == 0) { // hit nothing
-			totalCol = currCol; // Only colour of the material that ray hit; no reflection
+		if (ray.reflectNum <= _reflecNum) {
+			// Calculate the reflected ray 
+			// reflectedray = 2 * (normal . incident) * normal - incident
+			incident.normalize();
+			// std::cout << "direction: " << ray.intersection.normal.dot(incident) << "\n";
+			Vector3D reflected_vector = 4 * (ray.intersection.normal.dot(incident)) * ray.intersection.normal - incident;
+			reflected_vector.normalize();
+			Ray3D reflectedRay = Ray3D(ray.intersection.point + 0.001 * reflected_vector, 
+														reflected_vector, 
+														ray.reflectNum + 1, 
+														ray.intersection.shape);
+			// std::cout << "Coeff: " << ray.intersection.mat->reflection_coeff << "\n";
+			// std::cout << "RN:" << ray.reflectNum  << "\n";
+			// std::cout << "Power:" << pow(ray.intersection.mat->reflection_coeff, ray.reflectNum)  << "\n\n";
+			refCol = shadeRay(reflectedRay);
+			// std::cout << "Curr Int" << ray.reflectNum << ": " << ray.intersection.shape << "\n";
+			// std::cout << "Next Int: " << reflectedRay.intersection.shape << "\n";
+			if(reflectedRay.intersection.none || reflectedRay.intersection.shape.compare(ray.intersection.shape) == 0) { // hit nothing
+				totalCol = currCol; // Only colour of the material that ray hit; no reflection
+			}
+			else {
+				// totalCol = currCol + refCol; // Display entirely the reflected stuff
+				refCol = shadeRay(reflectedRay);
+				totalCol = (0.4*(currCol) + 0.6*refCol);
+			}
 		}
 		else {
-			// totalCol = currCol + refCol; // Display entirely the reflected stuff
-			refCol = shadeRay(reflectedRay);
-			totalCol = (0.4*(currCol) + 0.6*refCol);
+			totalCol = currCol;
 		}
 		// std::cout << "omg: " << refCol << "\n";
 	}
@@ -291,11 +331,12 @@ Colour Raytracer::shadeRay2( Ray3D& ray ) {
 }	
 
 void Raytracer::render( int width, int height, Point3D eye, Vector3D view, 
-		Vector3D up, double fov, char* fileName ) {
+		Vector3D up, double fov, char* fileName, int numLights) {
 	Matrix4x4 viewToWorld;
 	_scrWidth = width;
 	_scrHeight = height;
-	_reflecNum = 4;
+	_reflecNum = 0;
+	_numlights = numLights;
 	double factor = (double(height)/2)/tan(fov*M_PI/360.0);
 
 	initPixelBuffer();
@@ -310,6 +351,7 @@ void Raytracer::render( int width, int height, Point3D eye, Vector3D view,
 
 	// Construct a ray for each pixel.
 	for (int i = 0; i < _scrHeight; i++) {
+		std::cout << "Drawing row: " << i << "\n";
 		for (int j = 0; j < _scrWidth; j++) {
 			// Shoot 25 instead
 			// Add it to a colour object. Divide by number of rays
@@ -381,8 +423,38 @@ int main(int argc, char* argv[])
 						 69, 0.5);
 
 	// Defines a point light source.
-	raytracer.addLightSource( new PointLight(Point3D(0, 0, 5), 
-				Colour(0.9, 0.9, 0.9) ) );
+	double main_light_X = 0;
+	double main_light_Y = 0;
+	double main_light_Z = 3;
+	double toRadian = 2*M_PI/360.0;
+	raytracer.addLightSource( new PointLight(Point3D(main_light_X, main_light_Y, main_light_Z), Colour(0.9, 0.9, 0.9), 1));
+	// std::cout << "Coords: " << main_light_X << " " << main_light_Y << " " << main_light_Z << "\n";
+	// Define an area light source as a collection of point lights
+	double radius = 1.0; // From center point light to surrounding point lights
+	int light_ring_num = 50; // Number of lights in a ring around the center light
+	double angleSpacing = 360 / double(light_ring_num); // angle spacing between lights (5 lights would have 72 degrees between each light)
+	double currAngle = 0;
+	for (int i = 0; i < light_ring_num; i++) {
+		double currAngle = i * angleSpacing;
+		double sublight_X = radius * cos(currAngle * toRadian);
+		double sublight_Y = radius * sin(currAngle * toRadian); 
+		// std::cout << "ILRCoords: " << sublight_X << ", " << sublight_Y << ", " << main_light_Z << "\n";
+		raytracer.addLightSource( new PointLight(Point3D(sublight_X, sublight_Y, main_light_Z), 
+				Colour(0.7,0.7,0.7), i + 2) );
+	}
+
+	// Define moar points
+	radius = 1.5;
+	int outer_ring_num = 100;
+	angleSpacing = 360 / double(outer_ring_num); // angle spacing between lights (5 lights would have 72 degrees between each light)
+	for (int i = 0; i < outer_ring_num; i++) {
+		double currAngle = i * angleSpacing;
+		double sublight_X = radius * cos(currAngle * toRadian);
+		double sublight_Y = radius * sin(currAngle * toRadian); 
+		// std::cout << "ORCoords: " << sublight_X << ", " << sublight_Y << ", " << main_light_Z << "\n";
+		raytracer.addLightSource( new PointLight(Point3D(sublight_X, sublight_Y, main_light_Z), 
+				Colour(0.7,0.7,0.7), i + light_ring_num + 2) );
+	}
 
 	// Add a unit square into the scene with material mat.
 	SceneDagNode* sphere = raytracer.addObject( new UnitSphere(), &gold );
@@ -393,8 +465,9 @@ int main(int argc, char* argv[])
 	
 	// Apply some transformations to the unit square.
 	double factor1[3] = { 1.0, 2.0, 1.0 };
+	double factor3[3] = { 0.5, 0.5, 0.5 };
 	double factor2[3] = { 6.0, 6.0, 6.0 };
-	raytracer.translate(sphere, Vector3D(0, 0, -6));	
+	raytracer.translate(sphere, Vector3D(0, 0, -5));	
 	raytracer.rotate(sphere, 'x', -45); 
 	raytracer.rotate(sphere, 'z', 45); 
 	raytracer.scale(sphere, Point3D(0, 0, 0), factor1);
@@ -426,7 +499,7 @@ int main(int argc, char* argv[])
 	// Point3D eye2(0, -4,2);
 	// Vector3D view2(0.2, 0.4, -1);
 
-	raytracer.render(width, height, eye2, view2, up, fov, "view2.bmp");
+	raytracer.render(width, height, eye2, view2, up, fov, "view2.bmp", light_ring_num + outer_ring_num);
 	
 	return 0;
 }
