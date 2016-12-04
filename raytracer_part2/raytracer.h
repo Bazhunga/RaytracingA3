@@ -68,7 +68,7 @@ public:
 	// positioned at eye, with view vector view, up vector up, and 
 	// field of view fov.
 	void render( int width, int height, Point3D eye, Vector3D view, 
-			Vector3D up, double fov, char* fileName );
+			Vector3D up, double fov, char* fileName, int numlights);
 
 	// Add an object into the scene, with material mat.  The function
 	// returns a handle to the object node you just added, use the 
@@ -130,6 +130,7 @@ private:
 	int _scrWidth;
 	int _scrHeight;
 	int _reflecNum; 
+	int _numlights;
 
 	// Light list and scene graph.
 	LightListNode *_lightSource;

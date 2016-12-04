@@ -61,7 +61,7 @@ void PointLight::shade( Ray3D& ray, double shadowFactor) {
 		return;
 	}
 
-	ray.col = ray.col + light_diffuse + light_specular;
+	ray.col = ray.col + (light_diffuse + light_specular);
 	ray.col = shadowFactor * ray.col;
 	ray.col.clamp();
 
