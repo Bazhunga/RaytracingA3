@@ -28,6 +28,12 @@ public:
 			const Matrix4x4& modelToWorld );
 };
 
+class UnitSquare2 : public SceneObject {
+public:
+	bool intersect( Ray3D& ray, const Matrix4x4& worldToModel,
+			const Matrix4x4& modelToWorld );
+};
+
 class UnitSphere : public SceneObject {
 public:
 	bool intersect( Ray3D& ray, const Matrix4x4& worldToModel,
@@ -40,3 +46,8 @@ public:
 			const Matrix4x4& modelToWorld );
 };
 
+class UnitCylinder : public SceneObject {
+public: 
+	bool intersect( Ray3D& ray, const Matrix4x4& worldToModel,
+			const Matrix4x4& modelToWorld );
+};
