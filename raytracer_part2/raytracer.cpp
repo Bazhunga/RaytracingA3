@@ -181,33 +181,6 @@ void Raytracer::traverseScene( SceneDagNode* node, Ray3D& ray, const Matrix4x4& 
 }
 
 void Raytracer::computeShading( Ray3D& ray ) {
-	// >>> Old
-	// LightListNode* curLight = _lightSource;
-	// for (;;) {
-	// 	if (curLight == NULL) break;
-	// 	// Each lightSource provides its own shading function.
-
-	// 	// Implement shadows here if needed.
-	// 	// We know where the intersection points are
-	// 	// Now we need to draw a ray from light source to the intersection point
-	// 	// Traverse the scene
-	// 	// Now we know if that ray intersects anything
-	// 	// If it does, then we know to shade the ray darker
-
-	// 	Vector3D lti = curLight->light->get_position() - ray.intersection.point;
-	// 	lti.normalize();
-	// 	Point3D ip = ray.intersection.point + 0.001 * lti;
-	// 	Ray3D lightToIntersection = Ray3D(ip, lti);
-	// 	traverseScene(_root, lightToIntersection);
-	// 	if(lightToIntersection.intersection.none == false && lightToIntersection.intersection.shape.compare(ray.intersection.shape) != 0) {
-	// 		curLight->light->shade(ray, 1.0);
-	// 	}
-	// 	else {
-	// 		curLight->light->shade(ray, 1.0);
-	// 	}
-
-	// 	curLight = curLight->next;
-	// }
 	// >> New
 	Colour totalCol = Colour(0.0,0.0,0.0);
 	LightListNode* curLight = _lightSource;
@@ -241,7 +214,12 @@ void Raytracer::computeShading( Ray3D& ray ) {
 	// if (shadowCount != 0) {
 	// 	ray.col = (0.9 - (1.0/shadowCount) * 0.8) * ray.col;
 	// }
-	ray.col = (1.0/_numlights) * totalCol; // Get the average colour 
+	if (_numlights != 0) {
+		ray.col = (1.0/_numlights) * totalCol; // Get the average colour 
+	} 
+	else {
+		ray.col = totalCol;
+	}
 }
 
 void Raytracer::initPixelBuffer() {
@@ -285,7 +263,7 @@ Colour Raytracer::shadeRay( Ray3D& ray ) {
 			// reflectedray = 2 * (normal . incident) * normal - incident
 			incident.normalize();
 			// std::cout << "direction: " << ray.intersection.normal.dot(incident) << "\n";
-			Vector3D reflected_vector = 4 * (ray.intersection.normal.dot(incident)) * ray.intersection.normal - incident;
+			Vector3D reflected_vector = 2 * (ray.intersection.normal.dot(incident)) * ray.intersection.normal - incident;
 			reflected_vector.normalize();
 			Ray3D reflectedRay = Ray3D(ray.intersection.point + 0.001 * reflected_vector, 
 														reflected_vector, 
@@ -335,7 +313,7 @@ void Raytracer::render( int width, int height, Point3D eye, Vector3D view,
 	Matrix4x4 viewToWorld;
 	_scrWidth = width;
 	_scrHeight = height;
-	_reflecNum = 0;
+	_reflecNum = 3;
 	_numlights = numLights;
 	double factor = (double(height)/2)/tan(fov*M_PI/360.0);
 
@@ -393,7 +371,7 @@ int main(int argc, char* argv[])
 	Raytracer raytracer;
 	// int width = 320; //600; //320; 
 	// int height = 240;//450; //240; 
-	int width = 600; //320; 
+	int width = 620; //320; 
 	int height = 450; //240; 
 
 	if (argc == 3) {
@@ -428,7 +406,7 @@ int main(int argc, char* argv[])
 	double main_light_Z = 3;
 	double toRadian = 2*M_PI/360.0;
 	raytracer.addLightSource( new PointLight(Point3D(main_light_X, main_light_Y, main_light_Z), Colour(0.9, 0.9, 0.9), 1));
-	// std::cout << "Coords: " << main_light_X << " " << main_light_Y << " " << main_light_Z << "\n";
+	std::cout << "Coords: " << main_light_X << " " << main_light_Y << " " << main_light_Z << "\n";
 	// Define an area light source as a collection of point lights
 	double radius = 1.0; // From center point light to surrounding point lights
 	int light_ring_num = 50; // Number of lights in a ring around the center light
@@ -455,9 +433,13 @@ int main(int argc, char* argv[])
 		raytracer.addLightSource( new PointLight(Point3D(sublight_X, sublight_Y, main_light_Z), 
 				Colour(0.7,0.7,0.7), i + light_ring_num + 2) );
 	}
+	// int light_ring_num = 0;
+	// int outer_ring_num = 0;
 
 	// Add a unit square into the scene with material mat.
-	SceneDagNode* sphere = raytracer.addObject( new UnitSphere(), &gold );
+	// SceneDagNode* plane2 = raytracer.addObject( new UnitSquare2(), &jade );
+	// SceneDagNode* sphere = raytracer.addObject( new UnitSphere(), &gold );
+	SceneDagNode* cylinder = raytracer.addObject( new UnitCylinder(), &jade );
 	SceneDagNode* plane = raytracer.addObject( new UnitSquare(), &slate );
 	// SceneDagNode* planeTexture = raytracer.addObject( new UnitSquareTextured(), &slate );
 
@@ -467,10 +449,22 @@ int main(int argc, char* argv[])
 	double factor1[3] = { 1.0, 2.0, 1.0 };
 	double factor3[3] = { 0.5, 0.5, 0.5 };
 	double factor2[3] = { 6.0, 6.0, 6.0 };
-	raytracer.translate(sphere, Vector3D(0, 0, -5));	
-	raytracer.rotate(sphere, 'x', -45); 
-	raytracer.rotate(sphere, 'z', 45); 
-	raytracer.scale(sphere, Point3D(0, 0, 0), factor1);
+
+	// >> Draw Sphere
+	// raytracer.translate(sphere, Vector3D(0, 0, -5));	
+	// raytracer.rotate(sphere, 'x', -45); 
+	// raytracer.rotate(sphere, 'z', 45); 
+	// raytracer.scale(sphere, Point3D(0, 0, 0), factor1);
+
+	// >> Draw Cylinder
+	raytracer.translate(cylinder, Vector3D(0, 0, -3));	
+	// raytracer.rotate(cylinder, 'x', -45); 
+	// raytracer.rotate(cylinder, 'z', 45); 
+	raytracer.scale(cylinder, Point3D(0, 0, 0), factor1);
+
+	// >> Draw plane
+	// raytracer.translate(plane2, Vector3D(0, 0, -3));	
+	// raytracer.scale(plane2, Point3D(0, 0, 0), factor3);
 
 	// raytracer.trans/late(sphere2, Vector3D(0, 1, -5));
 
