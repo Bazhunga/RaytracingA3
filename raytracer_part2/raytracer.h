@@ -131,6 +131,8 @@ private:
 	int _scrHeight;
 	int _reflecNum; 
 	int _numlights;
+	bool _reflectionSwitch;
+	bool _glossSwitch;
 
 	// Light list and scene graph.
 	LightListNode *_lightSource;

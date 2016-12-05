@@ -309,6 +309,64 @@ bool UnitSphere::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 	   	}
 	   }
 	   else {
+	      // ray.intersection.none = true;
+	   }
+	}
+	return false;
+}
+
+bool UnitSphere2::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
+		const Matrix4x4& modelToWorld ) {
+	Ray3D object_space_ray = Ray3D(worldToModel * ray.origin, worldToModel * ray.dir);
+	Vector3D osr_dir_unit = object_space_ray.dir;
+	osr_dir_unit.normalize();
+
+	object_space_ray.intersection = ray.intersection;
+	std::string previousIntersection = ray.previousShape;
+
+   Vector3D ray_to_circle_center(-1*object_space_ray.origin[0], -1*object_space_ray.origin[1], -1*object_space_ray.origin[2]);
+   double rtc = ray_to_circle_center.length();
+   double proj = ray_to_circle_center.dot(osr_dir_unit);
+
+   double ray_test_y_squared = pow(rtc,2) - pow(proj,2);
+   double ray_test_k_squared = 1 - ray_test_y_squared;
+	if (ray_test_k_squared >= 0) {
+		double k = sqrt(ray_test_k_squared);
+
+		Vector3D ray_to_intersection;
+
+		ray_to_intersection = (proj - k) * osr_dir_unit;
+
+	   double t_value = (ray_to_intersection.length() / object_space_ray.dir.length());
+	   if(previousIntersection.compare("sphere2") != 0) {
+	   	if (ray.intersection.none || t_value < ray.intersection.t_value){
+
+		      double x = ray_to_intersection[0] + object_space_ray.origin[0];
+		      double y = ray_to_intersection[1] + object_space_ray.origin[1];
+		      double z = ray_to_intersection[2] + object_space_ray.origin[2];
+
+		      Point3D intersection_point(x, y, z);
+
+		      ray.intersection.point = modelToWorld * intersection_point;
+
+		      Vector3D normal(intersection_point[0], intersection_point[1], intersection_point[2]);
+		      if(object_space_ray.dir.dot(normal) > 1) {
+					normal = -1 * normal; // Normal was facing wrong way
+				}
+		      // ray.intersection.normal = worldToModel.transpose() * normal;
+		      ray.intersection.normal = worldToModel.transpose() * normal;
+		      ray.intersection.normal.normalize();
+		      // ray.intersection.normal.normalize();
+
+		      // All the t_value variables should have the same value
+		      ray.intersection.t_value = t_value;
+
+		      ray.intersection.none = false;
+		     	ray.intersection.shape = "sphere2";
+		      return true;
+	   	}
+	   }
+	   else {
 	      ray.intersection.none = true;
 	   }
 	}
@@ -438,7 +496,11 @@ bool UnitCylinder::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 					ray.intersection.point = modelToWorld * intersection_point;
 					ray.intersection.normal = worldToModel.transpose() * Vector3D(intersection_point[0], 0, intersection_point[2]);
 					ray.intersection.normal.normalize();
+					if (ray.dir.dot(ray.intersection.normal) > 0) {
+						ray.intersection.normal = -1 * ray.intersection.normal;
+					}
 					ray.intersection.none = false;
+					ray.intersection.shape = "cylinder";
 					return true;
 				}
 			}
@@ -457,7 +519,11 @@ bool UnitCylinder::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 					ray.intersection.point =  modelToWorld * intersection_point;
 					ray.intersection.normal = worldToModel.transpose() * Vector3D(0, 1, 0);
 					ray.intersection.normal.normalize();
+					if (ray.dir.dot(ray.intersection.normal) > 0) {
+						ray.intersection.normal = -1 * ray.intersection.normal;
+					}
 					ray.intersection.none = false;
+					ray.intersection.shape = "cylinder";
 					return true;
 				}
 			}
@@ -471,7 +537,11 @@ bool UnitCylinder::intersect( Ray3D& ray, const Matrix4x4& worldToModel,
 					ray.intersection.point =  modelToWorld * intersection_point;
 					ray.intersection.normal = worldToModel.transpose() * Vector3D(0, -1, 0);
 					ray.intersection.normal.normalize();
+					if (ray.dir.dot(ray.intersection.normal) > 0) {
+						ray.intersection.normal = -1 * ray.intersection.normal;
+					}
 					ray.intersection.none = false;
+					ray.intersection.shape = "cylinder";
 					return true;
 				}
 			}
